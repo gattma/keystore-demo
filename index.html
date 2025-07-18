@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keystore Information Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #e8e8e8;
+        }
+
+        .header {
+            background: #333;
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            font-weight: 300;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 1em;
+            opacity: 0.7;
+            font-weight: 300;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group label {
+            font-weight: 500;
+            color: #666;
+            min-width: 120px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            min-width: 300px;
+            background: #fafafa;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #333;
+            background: white;
+            box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
+        }
+
+        .btn:hover {
+            background: #555;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .content {
+            padding: 30px;
+            min-height: 300px;
+            background: #fff;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #888;
+        }
+
+        .spinner {
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #333;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fdf2f2;
+            color: #d63384;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #f8d7da;
+            font-weight: 500;
+        }
+
+        .keystore-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .keystore-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 28px;
+            border: 1px solid #e8e8e8;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .keystore-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            border-color: #ddd;
+        }
+
+        .keystore-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #333;
+        }
+
+        .alias-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .alias-icon {
+            width: 28px;
+            height: 28px;
+            background: #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .info-section {
+            margin-bottom: 24px;
+        }
+
+        .info-title {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px 20px;
+            font-size: 0.95em;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .info-value {
+            color: #333;
+            word-break: break-all;
+        }
+
+        .validity-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .valid {
+            background: #f0f9f0;
+            color: #2d7d2d;
+        }
+
+        .expired {
+            background: #fdf2f2;
+            color: #d63384;
+        }
+
+        .expiring-soon {
+            background: #fff8e1;
+            color: #b8860b;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            color: #333;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 1px solid #e8e8e8;
+        }
+
+        .stats h3 {
+            font-size: 1em;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stats-number {
+            font-size: 2.2em;
+            font-weight: 300;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .keystore-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .input-group input {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔐 Keystore Information Viewer</h1>
+        <p>Manage and monitor your SSL certificates and keystores</p>
+    </div>
+
+    <div class="controls">
+        <div class="input-group">
+            <label for="endpoint">API Endpoint:</label>
+            <input type="text" id="endpoint" placeholder="http://localhost:8080/keystore" value="http://localhost:8080/keystore">
+            <button class="btn" onclick="fetchKeystoreInfo()">🔄 Refresh Data</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading keystore information...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" style="display: none;">
+            <div class="stats">
+                <h3>Total Certificates</h3>
+                <div class="stats-number" id="totalCount">0</div>
+            </div>
+            <div id="keystoreContainer" class="keystore-grid"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function getValidityStatus(validUntil) {
+        const now = new Date();
+        const expiry = new Date(validUntil);
+        const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+            return { status: 'expired', text: 'EXPIRED' };
+        } else if (diffDays <= 30) {
+            return { status: 'expiring-soon', text: `EXPIRES IN ${diffDays} DAYS` };
+        } else {
+            return { status: 'valid', text: 'VALID' };
+        }
+    }
+
+    function parseSubject(subject) {
+        const parts = subject.split(',');
+        const parsed = {};
+        parts.forEach(part => {
+            const [key, value] = part.split('=');
+            if (key && value) {
+                parsed[key.trim()] = value.trim();
+            }
+        });
+        return parsed;
+    }
+
+    function createKeystoreCard(keystore) {
+        const validity = getValidityStatus(keystore.metaInfos.validUntil);
+        const subject = parseSubject(keystore.metaInfos.subject);
+        const issuer = parseSubject(keystore.metaInfos.issuer);
+
+        return `
+                <div class="keystore-card">
+                    <div class="alias-title">
+                        <div class="alias-icon">${keystore.alias.charAt(0).toUpperCase()}</div>
+                        ${keystore.alias}
+                    </div>
+
+                    <div class="info-section">
+                        <div class="info-title">Certificate Details</div>
+                        <div class="info-grid">
+                            <div class="info-label">Common Name:</div>
+                            <div class="info-value">${subject.CN || 'N/A'}</div>
+                            <div class="info-label">Organization:</div>
+                            <div class="info-value">${subject.O || 'N/A'}</div>
+                            <div class="info-label">Serial Number:</div>
+                            <div class="info-value">${keystore.metaInfos.serialNumber}</div>
+                            <div class="info-label">Status:</div>
+                            <div class="info-value">
+                                <span class="validity-status ${validity.status}">${validity.text}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <div class="info-title">Validity Period</div>
+                        <div class="info-grid">
+                            <div class="info-label">Valid From:</div>
+                            <div class="info-value">${formatDate(keystore.metaInfos.validFrom)}</div>
+                            <div class="info-label">Valid Until:</div>
+                            <div class="info-value">${formatDate(keystore.metaInfos.validUntil)}</div>
+                            <div class="info-label">Created:</div>
+                            <div class="info-value">${formatDate(keystore.creationDate)}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <div class="info-title">Issuer Information</div>
+                        <div class="info-grid">
+                            <div class="info-label">Issuer CN:</div>
+                            <div class="info-value">${issuer.CN || 'N/A'}</div>
+                            <div class="info-label">Issuer O:</div>
+                            <div class="info-value">${issuer.O || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+    }
+
+    async function fetchKeystoreInfo() {
+        const endpoint = document.getElementById('endpoint').value;
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error');
+        const resultsEl = document.getElementById('results');
+        const containerEl = document.getElementById('keystoreContainer');
+        const totalCountEl = document.getElementById('totalCount');
+
+        // Reset UI
+        loadingEl.style.display = 'block';
+        errorEl.style.display = 'none';
+        resultsEl.style.display = 'none';
+        containerEl.innerHTML = '';
+
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.keystoreInfos || !Array.isArray(data.keystoreInfos)) {
+                throw new Error('Invalid response format: keystoreInfos array not found');
+            }
+
+            // Hide loading and show results
+            loadingEl.style.display = 'none';
+            resultsEl.style.display = 'block';
+
+            // Update stats
+            totalCountEl.textContent = data.keystoreInfos.length;
+
+            // Create cards for each keystore
+            data.keystoreInfos.forEach(keystore => {
+                containerEl.innerHTML += createKeystoreCard(keystore);
+            });
+
+            if (data.keystoreInfos.length === 0) {
+                containerEl.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 50px;">No certificates found in the keystore.</div>';
+            }
+
+        } catch (error) {
+            console.error('Error fetching keystore info:', error);
+            loadingEl.style.display = 'none';
+            errorEl.style.display = 'block';
+            errorEl.textContent = `Error: ${error.message}`;
+        }
+    }
+
+    // Load data when page loads
+    window.addEventListener('load', fetchKeystoreInfo);
+
+    // Add enter key support for endpoint input
+    document.getElementById('endpoint').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            fetchKeystoreInfo();
+        }
+    });
+</script>
+</body>
+</html>
